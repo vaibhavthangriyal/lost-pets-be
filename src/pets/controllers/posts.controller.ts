@@ -13,4 +13,5 @@ export class PostsController {
   @Patch(PETS_ROUTES.status) @UseGuards(AuthGuard) status(@Req() req: any, @Param('id') postId: string, @Body() dto: StatusDto) { return this.service.status(postId, req.user.id, dto.status); }
   @Get(PETS_ROUTES.comments) comments(@Param('id') postId: string) { return this.service.listComments(postId); }
   @Post(PETS_ROUTES.comments) @UseGuards(AuthGuard) comment(@Req() req: any, @Param('id') postId: string, @Body() dto: CommentDto) { return this.service.addComment(postId, req.user.id, dto.text); }
+  @Post(PETS_ROUTES.replies) @UseGuards(AuthGuard) reply(@Req() req: any, @Param('id') postId: string, @Param('commentId') commentId: string, @Body() dto: CommentDto) { return this.service.addReply(postId, commentId, req.user.id, dto.text); }
 }

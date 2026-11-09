@@ -21,7 +21,13 @@ export class PetsRepository {
   findPost(id: Types.ObjectId) { return this.posts.findById(id); }
   async savePost(post: Awaited<ReturnType<PetsRepository['findPost']>> & {}) { await post.save(); return post.populate(publicAuthor); }
   async addComment(post: Types.ObjectId, author: Types.ObjectId, text: string) { return (await this.comments.create({ post, author, text })).populate(publicAuthor); }
-  listComments(post: Types.ObjectId) { return this.comments.find({ post }).populate(publicAuthor).sort({ createdAt: 1 }).limit(100); }
+  findTopComment(post: Types.ObjectId, comment: Types.ObjectId) { return this.comments.findOne({ _id: comment, post, parentComment: { $exists: false } }); }
+  async addReply(post: Types.ObjectId, parentComment: Types.ObjectId, author: Types.ObjectId, text: string) { return (await this.comments.create({ post, parentComment, author, text })).populate(publicAuthor); }
+  async listComments(post: Types.ObjectId) {
+    const comments = await this.comments.find({ post, parentComment: { $exists: false } }).populate(publicAuthor).sort({ createdAt: 1 }).limit(100).lean();
+    const replies = await this.comments.find({ post, parentComment: { $in: comments.map(comment => comment._id) } }).populate(publicAuthor).sort({ createdAt: 1 }).lean();
+    return comments.map(comment => ({ ...comment, replies: replies.filter(reply => reply.parentComment?.toString() === comment._id.toString()) }));
+  }
   updateAlert(user: Types.ObjectId, location: Point, radiusKm: number, types: string[]) {
     return this.alerts.findOneAndUpdate({ user }, { user, location, radiusKm, types }, { upsert: true, new: true, runValidators: true });
   }
