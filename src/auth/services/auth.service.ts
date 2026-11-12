@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { createHmac, randomInt } from 'crypto';
+import { Types } from 'mongoose';
+import { UpdateProfileDto } from '../dto/profile.dto';
 import { VerifyOtpDto } from '../dto/otp.dto';
 import { AuthRepository } from '../repositories/auth.repository';
 
@@ -30,5 +32,18 @@ export class AuthService {
     if (!displayName) throw new BadRequestException('Display name cannot be blank');
     const user = await this.repository.findOrCreateUser(email, displayName);
     return { accessToken: await this.jwt.signAsync({ sub: user._id.toString() }), user: { id: user._id, displayName: user.displayName } };
+  }
+  private userId(value: string) { if (!Types.ObjectId.isValid(value)) throw new UnauthorizedException(); return new Types.ObjectId(value); }
+  async profile(userId: string) {
+    const user = await this.repository.findUser(this.userId(userId));
+    if (!user) throw new UnauthorizedException();
+    return { id: user._id, displayName: user.displayName, email: user.email };
+  }
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const displayName = dto.displayName.trim();
+    if (!displayName) throw new BadRequestException('Display name cannot be blank');
+    const user = await this.repository.updateDisplayName(this.userId(userId), displayName);
+    if (!user) throw new UnauthorizedException();
+    return { id: user._id, displayName: user.displayName, email: user.email };
   }
 }

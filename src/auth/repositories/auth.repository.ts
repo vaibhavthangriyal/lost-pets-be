@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User } from '../entities/user.entity';
 import { OtpChallenge } from '../entities/otp-challenge.entity';
 
@@ -17,4 +17,6 @@ export class AuthRepository {
   findOrCreateUser(email: string, displayName: string) {
     return this.users.findOneAndUpdate({ email }, { $setOnInsert: { email, displayName } }, { upsert: true, new: true });
   }
+  findUser(id: Types.ObjectId) { return this.users.findById(id); }
+  updateDisplayName(id: Types.ObjectId, displayName: string) { return this.users.findByIdAndUpdate(id, { $set: { displayName } }, { new: true, runValidators: true }); }
 }

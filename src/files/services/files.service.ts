@@ -50,4 +50,20 @@ export class FilesService {
     const expiresAt = new Date(Date.now() + URL_LIFETIME_MS);
     return { file: publicInfo(file), download: { url: await this.storage.createDownloadUrl(file.key, file.generation, expiresAt), expiresAt } };
   }
+  async publishImages(userId: string, fileIds: string[]) {
+    const owner = objectId(userId);
+    const ids = fileIds.map(objectId);
+    const files = await Promise.all(ids.map(id => this.repository.findOwned(id, owner)));
+    if (files.some(file => !file || file.status !== 'uploaded' || !file.generation)) throw new BadRequestException('Every post photo must be uploaded and confirmed');
+    if (files.some(file => !file!.mimeType.startsWith('image/'))) throw new BadRequestException('Post photos must be image files');
+    const result = await this.repository.markPublic(ids, owner);
+    if (result.matchedCount !== ids.length) throw new ConflictException('Could not publish all post photos');
+    return ids.map(id => `/api/files/${id}/content`);
+  }
+  async publicDownload(fileId: string) {
+    const file = await this.repository.findPublic(objectId(fileId));
+    if (!file || !file.generation) throw new NotFoundException('Photo not found');
+    const expiresAt = new Date(Date.now() + URL_LIFETIME_MS);
+    return this.storage.createDownloadUrl(file.key, file.generation, expiresAt);
+  }
 }

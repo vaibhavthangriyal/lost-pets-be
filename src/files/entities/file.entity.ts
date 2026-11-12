@@ -11,6 +11,7 @@ export class UploadedFile {
   @Prop({ required: true, min: 1 }) size: number;
   @Prop({ min: 0 }) durationSeconds?: number;
   @Prop({ enum: ['pending', 'uploaded', 'failed'], default: 'pending', required: true }) status: string;
+  @Prop({ default: false, required: true }) public: boolean;
   @Prop({ required: true }) uploadExpiresAt: Date;
   @Prop() generation?: string;
   @Prop() confirmedAt?: Date;

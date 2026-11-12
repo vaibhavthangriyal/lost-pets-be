@@ -12,6 +12,7 @@ export class PetPost {
   @Prop({ required: true, maxlength: 120 }) title: string;
   @Prop({ required: true, maxlength: 5000 }) description: string;
   @Prop({ maxlength: 80 }) species?: string;
+  @Prop({ maxlength: 120 }) breed?: string;
   @Prop({ type: [String], default: [] }) photos: string[];
   @Prop({ type: PointSchema, required: true }) location: Point;
   @Prop({ required: true }) occurredAt: Date;

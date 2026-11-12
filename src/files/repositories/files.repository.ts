@@ -9,6 +9,8 @@ export class FilesRepository {
   create(data: Partial<UploadedFile>) { return this.files.create(data); }
   listOwned(owner: Types.ObjectId) { return this.files.find({ owner }).sort({ createdAt: -1, _id: -1 }).limit(100); }
   findOwned(id: Types.ObjectId, owner: Types.ObjectId) { return this.files.findOne({ _id: id, owner }); }
+  findPublic(id: Types.ObjectId) { return this.files.findOne({ _id: id, public: true, status: 'uploaded' }); }
   markFailed(id: Types.ObjectId) { return this.files.updateOne({ _id: id, status: 'pending' }, { $set: { status: 'failed' } }); }
   confirm(id: Types.ObjectId, owner: Types.ObjectId, generation: string) { return this.files.findOneAndUpdate({ _id: id, owner, status: 'pending' }, { $set: { status: 'uploaded', generation, confirmedAt: new Date() } }, { new: true }); }
+  markPublic(ids: Types.ObjectId[], owner: Types.ObjectId) { return this.files.updateMany({ _id: { $in: ids }, owner, status: 'uploaded' }, { $set: { public: true } }); }
 }

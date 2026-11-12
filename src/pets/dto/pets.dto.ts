@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsDateString, IsDefined, IsIn, IsLatitude, IsLongitude, IsMongoId, IsNumber, IsOptional, IsString, IsUrl, Length, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayUnique, IsArray, IsDateString, IsDefined, IsIn, IsLatitude, IsLongitude, IsMongoId, IsNumber, IsOptional, IsString, IsUrl, Length, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { PostType, postTypes } from '../entities/pet-post.entity';
 
 export class LocationDto {
@@ -11,7 +11,9 @@ export class CreatePostDto {
   @IsString() @Length(1, 120) title: string;
   @IsString() @Length(1, 5000) description: string;
   @IsOptional() @IsString() @MaxLength(80) species?: string;
+  @IsOptional() @IsString() @MaxLength(120) breed?: string;
   @IsOptional() @IsArray() @ArrayMaxSize(10) @IsUrl({ require_protocol: true }, { each: true }) photos?: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(10) @ArrayUnique() @IsMongoId({ each: true }) photoFileIds?: string[];
   @IsDefined() @ValidateNested() @Type(() => LocationDto) location: LocationDto;
   @IsDateString() occurredAt: string;
   @IsOptional() @IsMongoId() relatedPostId?: string;
