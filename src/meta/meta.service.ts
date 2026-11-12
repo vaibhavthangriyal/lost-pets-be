@@ -25,6 +25,11 @@ const seeds: Record<string, { label: string; options: SeedOption[] }> = {
     { value: 'british_shorthair', label: 'British Shorthair', parentValue: 'cat', sortOrder: 5 },
     { value: 'bengal', label: 'Bengal', parentValue: 'cat', sortOrder: 6 },
   ] },
+  currency: { label: 'Currency', options: [
+    { value: 'INR', label: 'INR — Indian Rupee', sortOrder: 1 }, { value: 'USD', label: 'USD — US Dollar', sortOrder: 2 },
+    { value: 'EUR', label: 'EUR — Euro', sortOrder: 3 }, { value: 'GBP', label: 'GBP — British Pound', sortOrder: 4 },
+    { value: 'AUD', label: 'AUD — Australian Dollar', sortOrder: 5 }, { value: 'CAD', label: 'CAD — Canadian Dollar', sortOrder: 6 },
+  ] },
 };
 
 @Injectable()
@@ -42,7 +47,7 @@ export class MetaService implements OnModuleInit {
       const saved = await this.upsertOption(masterIds.get('pet_type')!, option);
       petIds.set(option.value, saved._id);
     }
-    for (const key of ['post_type', 'breed']) for (const option of seeds[key].options) await this.upsertOption(masterIds.get(key)!, option, option.parentValue ? petIds.get(option.parentValue) : undefined);
+    for (const key of ['post_type', 'breed', 'currency']) for (const option of seeds[key].options) await this.upsertOption(masterIds.get(key)!, option, option.parentValue ? petIds.get(option.parentValue) : undefined);
   }
   private upsertOption(master: Types.ObjectId, option: SeedOption, parentOption?: Types.ObjectId) {
     return this.options.findOneAndUpdate({ master, value: option.value }, { $set: { label: option.label, sortOrder: option.sortOrder, active: true, ...(parentOption ? { parentOption } : {}) } }, { upsert: true, new: true, setDefaultsOnInsert: true });
@@ -58,6 +63,7 @@ export class MetaService implements OnModuleInit {
       petTypes: petTypes.map(shape),
       postTypes: options.filter(option => option.master.equals(byKey.get('post_type')!._id)).map(shape),
       breeds: options.filter(option => option.master.equals(byKey.get('breed')!._id)).map(option => ({ ...shape(option), petType: option.parentOption ? petValueById.get(option.parentOption.toString()) : undefined })),
+      currencies: options.filter(option => option.master.equals(byKey.get('currency')!._id)).map(shape),
     };
   }
   async validatePost(postType: string, petType?: string, breed?: string) {
@@ -66,6 +72,7 @@ export class MetaService implements OnModuleInit {
     this.validateAnimalFrom(metadata, petType, breed);
   }
   async validateAnimal(petType: string, breed?: string) { this.validateAnimalFrom(await this.list(), petType, breed); }
+  async validateCurrency(currency: string) { if (!(await this.list()).currencies.some(option => option.value === currency)) throw new BadRequestException('Invalid currency'); }
   private validateAnimalFrom(metadata: Awaited<ReturnType<MetaService['list']>>, petType?: string, breed?: string) {
     if (petType && !metadata.petTypes.some(option => option.value === petType)) throw new BadRequestException('Invalid animal type');
     if (breed && !metadata.breeds.some(option => option.value === breed && option.petType === petType)) throw new BadRequestException('Invalid breed for the selected animal type');

@@ -6,12 +6,13 @@ Initial NestJS and MongoDB API for lost pets, sightings and stray-pet rescues.
 
 - **OTP accounts:** development-only email-based OTP verification, JWT authentication, protected endpoints, and public display names without exposing email addresses.
 - **Community posts:** public browsing and authenticated creation of lost-pet, sighting, and found-stray rescue posts; optional sighting links to lost posts; owner-controlled active/resolved status.
-- **Shared metadata:** `metaMaster` and `metaOptions` collections seed post types, pet types, and dog/cat breeds used by the web and mobile dropdowns.
+- **Shared metadata:** `metaMaster` and `metaOptions` collections seed post types, pet types, dog/cat breeds, and reward currencies used by the web and mobile dropdowns.
 - **Geographic search:** MongoDB geospatial indexes and nearby search using latitude, longitude, and a radius; pagination and post-type/status filters.
 - **Comments:** public top-level comments from signed-in users and public replies restricted to the post owner.
 - **My pets:** private, owner-scoped pet profile creation, listing, editing, and deletion.
 - **Nearby notifications:** users can save up to 10 coordinate-based notification locations with independent radii and post-type filters. Matching posts create in-app notifications and mobile push notifications.
 - **Realtime delivery:** authenticated Socket.IO clients join a private per-user room and receive `notification:new` immediately after a matching in-app notification is stored.
+- **Missing Pet posters:** owners can create printable posters from their lost-pet posts; poster details always come from the associated post.
 - **File uploads:** owner-scoped file records and GCS signed upload, confirmation, and download flows behind a cloud-storage interface. Confirmed images can be attached to public posts.
 - **Basic safeguards:** request validation, rate limiting, authorization checks, and automated service tests.
 
@@ -61,6 +62,9 @@ All protected endpoints use `Authorization: Bearer <accessToken>`. Public author
 | PATCH | `/api/me/notifications/read-all` | Signed in | Mark all notifications read |
 | POST | `/api/me/push-devices` | Signed in | Register or refresh an Expo push device |
 | DELETE | `/api/me/push-devices/:deviceId` | Signed in | Disable a push device during logout |
+| GET | `/api/posters/eligible-posts` | Signed in | List the user's lost-pet posts available for posters |
+| GET/POST | `/api/posters` | Signed in | List posters or create one from `{ "postId": "..." }` |
+| GET/PATCH/DELETE | `/api/posters/:id` | Owner | View, edit printable information, or remove a saved poster |
 | GET | `/api/me/pets` | Signed in | List only your saved pets |
 | POST | `/api/me/pets` | Signed in | Save a pet: `name`, `species`, optional `breed`, `description`, and `photos` URLs |
 | PUT | `/api/me/pets/:id` | Owner | Replace your pet's details using the same fields |
