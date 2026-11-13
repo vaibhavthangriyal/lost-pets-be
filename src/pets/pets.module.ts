@@ -17,6 +17,7 @@ import { OwnedPet, OwnedPetSchema } from './entities/owned-pet.entity';
 import { OwnedPetController } from './controllers/owned-pet.controller';
 import { OwnedPetRepository } from './repositories/owned-pet.repository';
 import { OwnedPetService } from './services/owned-pet.service';
+import { ShortUrlModule } from '../short-url/short-url.module';
 
 @Module({
     imports: [
@@ -24,6 +25,7 @@ import { OwnedPetService } from './services/owned-pet.service';
         FilesModule,
         MetaModule,
         NotificationsModule,
+        ShortUrlModule,
         MongooseModule.forFeature([
             { name: PetPost.name, schema: PetPostSchema },
             { name: Comment.name, schema: CommentSchema },

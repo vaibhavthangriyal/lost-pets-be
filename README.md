@@ -13,6 +13,7 @@ Initial NestJS and MongoDB API for lost pets, sightings and stray-pet rescues.
 - **Nearby notifications:** users can save up to 10 coordinate-based notification locations with independent radii and post-type filters. Matching posts create in-app notifications and mobile push notifications.
 - **Realtime delivery:** authenticated Socket.IO clients join a private per-user room and receive `notification:new` immediately after a matching in-app notification is stored.
 - **Missing Pet posters:** owners can create printable posters from their lost-pet posts; poster details always come from the associated post.
+- **Short links and QR codes:** every new post receives a persistent short URL. Poster responses include that URL and a generated QR image so printed posters can open the live post.
 - **File uploads:** owner-scoped file records and GCS signed upload, confirmation, and download flows behind a cloud-storage interface. Confirmed images can be attached to public posts.
 - **Basic safeguards:** request validation, rate limiting, authorization checks, and automated service tests.
 
@@ -48,6 +49,7 @@ All protected endpoints use `Authorization: Bearer <accessToken>`. Public author
 | GET | `/api/posts` | Public | Filter by `type`, `status`, or `latitude`, `longitude`, `radiusKm` together; optional `limit` and `skip` |
 | GET | `/api/meta` | Public | List active pet types, post types, and breeds with their parent pet type |
 | GET | `/api/posts/:id` | Public | View one post |
+| GET | `/api/s/:code` | Public | Redirect a post short URL to the public web post |
 | POST | `/api/posts` | Signed in | Create a post; accepts uploaded image IDs in `photoFileIds` |
 | PATCH | `/api/posts/:id/status` | Owner | Set `{ "status": "resolved" }` or `active` |
 | GET | `/api/posts/:id/comments` | Public | List up to 100 comments |
@@ -121,4 +123,6 @@ After sign-in, web and mobile clients request foreground coordinates and save th
 Push delivery uses the separately bound `ExpoPushNotificationService`. The mobile app requires an EAS project ID (`EXPO_PUBLIC_EAS_PROJECT_ID` or EAS app configuration), Android FCM credentials, iOS APNs credentials, and a physical-device development/production build. A production OTP provider, moderation, server-side media scanning, durable notification-job processing, and production monitoring are still needed before launch.
 
 Realtime clients connect to the `/notifications` Socket.IO namespace with `{ auth: { token: accessToken } }`. Invalid tokens are disconnected. Web deployments should set `NEXT_PUBLIC_BACKEND_ORIGIN` to the externally reachable backend origin; mobile deployments use the origin from `EXPO_PUBLIC_API_URL`.
+
+Set `PUBLIC_API_URL` to the externally reachable API base including `/api` (for example `https://api.example.com/api`) so printed QR codes do not contain localhost. Set `PUBLIC_WEB_URL` to the public web app origin used by short-link redirects. Existing posts receive their short URL automatically the first time a poster is loaded.
 # lost-pets-be

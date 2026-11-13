@@ -5,11 +5,13 @@ import { PetPost } from '../pets/entities/pet-post.entity';
 import { MetaService } from '../meta/meta.service';
 import { CreatePosterDto, UpdatePosterDto } from './dto/create-poster.dto';
 import { Poster } from './entities/poster.entity';
+import { QrService } from '../qr/qr.service';
+import { ShortUrlService } from '../short-url/short-url.service';
 
 function id(value: string) { if (!Types.ObjectId.isValid(value)) throw new BadRequestException('Invalid ID'); return new Types.ObjectId(value); }
 @Injectable()
 export class PosterService {
-  constructor(@InjectModel(Poster.name) private posters: Model<Poster>, @InjectModel(PetPost.name) private posts: Model<PetPost>, private metadata: MetaService) {}
+  constructor(@InjectModel(Poster.name) private posters: Model<Poster>, @InjectModel(PetPost.name) private posts: Model<PetPost>, private metadata: MetaService, private shortUrls: ShortUrlService, private qr: QrService) {}
   eligiblePosts(userId: string) { return this.posts.find({ author: id(userId), type: 'lost' }).sort({ createdAt: -1 }).select('title description species breed photos location occurredAt status'); }
   async create(userId: string, dto: CreatePosterDto) {
     const user = id(userId); const post = await this.posts.findOne({ _id: id(dto.postId), author: user, type: 'lost' });
@@ -23,7 +25,7 @@ export class PosterService {
     const posters = await this.posters.find({ user: id(userId) }).sort({ createdAt: -1 });
     const posts = await this.posts.find({ _id: { $in: posters.map(poster => poster.post) } });
     const byId = new Map(posts.map(post => [post._id.toString(), post]));
-    return posters.flatMap(poster => { const post = byId.get(poster.post.toString()); return post ? [this.output(poster, post)] : []; });
+    return Promise.all(posters.flatMap(poster => { const post = byId.get(poster.post.toString()); return post ? [this.output(poster, post)] : []; }));
   }
   async get(userId: string, posterId: string) {
     const poster = await this.posters.findOne({ _id: id(posterId), user: id(userId) });
@@ -39,7 +41,9 @@ export class PosterService {
     if (!poster) throw new NotFoundException('Poster not found'); const post = await this.posts.findById(poster.post); if (!post) throw new NotFoundException('Post not found'); return this.output(poster, post);
   }
   async remove(userId: string, posterId: string) { const result = await this.posters.deleteOne({ _id: id(posterId), user: id(userId) }); if (!result.deletedCount) throw new NotFoundException('Poster not found'); return { deleted: true }; }
-  private output(poster: Poster & { _id: Types.ObjectId }, post: PetPost & { _id: Types.ObjectId }) {
-    return { _id: poster._id, postId: post._id, heading: poster.heading || 'MISSING PET', title: poster.title || post.title, description: poster.description || post.description, mobileNumber: poster.mobileNumber, rewardAmount: poster.rewardAmount, currency: poster.currency, species: post.species, breed: post.breed, photo: post.photos?.[0], location: post.location, occurredAt: post.occurredAt, status: post.status, createdAt: (poster as any).createdAt };
+  private async output(poster: Poster & { _id: Types.ObjectId }, post: PetPost & { _id: Types.ObjectId }) {
+    const short = await this.shortUrls.forPost(post._id);
+    const qrCodeDataUrl = await this.qr.toDataUrl(short.url);
+    return { _id: poster._id, postId: post._id, heading: poster.heading || 'MISSING PET', title: poster.title || post.title, description: poster.description || post.description, mobileNumber: poster.mobileNumber, rewardAmount: poster.rewardAmount, currency: poster.currency, shortUrl: short.url, qrCodeDataUrl, species: post.species, breed: post.breed, photo: post.photos?.[0], location: post.location, occurredAt: post.occurredAt, status: post.status, createdAt: (poster as any).createdAt };
   }
 }
