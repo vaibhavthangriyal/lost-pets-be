@@ -4,7 +4,7 @@ Initial NestJS and MongoDB API for lost pets, sightings and stray-pet rescues.
 
 ## Implemented major features
 
-- **OTP accounts:** development-only email-based OTP verification, JWT authentication, protected endpoints, and public display names without exposing email addresses.
+- **OTP accounts:** email or SMS OTP verification through a generic SMTP email service and Twilio SMS adapter, SMS-to-email fallback when both destinations are supplied, JWT authentication, protected endpoints, and public display names without exposing contact details.
 - **Community posts:** public browsing and authenticated creation of lost-pet, sighting, and found-stray rescue posts; optional sighting links to lost posts; owner-controlled active/resolved status.
 - **Shared metadata:** `metaMaster` and `metaOptions` collections seed post types, pet types, dog/cat breeds, and reward currencies used by the web and mobile dropdowns.
 - **Geographic search:** MongoDB geospatial indexes and nearby search using latitude, longitude, and a radius; pagination and post-type/status filters.
@@ -34,7 +34,9 @@ Install Node.js 20+ and MongoDB, then:
 3. Start MongoDB and run `npm run dev`.
 4. The API is available at `http://localhost:3000/api`.
 
-OTP login currently accepts email addresses and prints codes to the server console **only in development** when `OTP_DELIVERY=console`. Production OTP delivery is intentionally disabled until an SMS or email provider and the final sign-in channel are selected. OTPs expire in five minutes and have a five-attempt limit. The development OTP must not be used in a deployed environment.
+OTP login accepts an email address or an E.164 phone number. Configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM` to enable email delivery. Port 587 uses STARTTLS by default; port 465 uses implicit TLS by default. Configure `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_FROM_NUMBER` to enable SMS delivery. A missing provider is skipped. When SMS is requested and fails, the service falls back to email if the request also contains an email address and SMTP is configured. OTPs expire in five minutes and have a five-attempt limit. In development, `OTP_DELIVERY=console` can print an email OTP when no email provider is configured; never use this in a deployed environment.
+
+The user and OTP schemas now support phone identifiers. On a database created with the earlier email-only schema, inspect existing indexes before deploying this change. The old non-sparse `email_1` indexes must be replaced with sparse email and phone indexes, and the old OTP email index must be replaced with the `identifier` index. Back up the database before applying index changes; do not drop indexes blindly in production.
 
 ## API
 
@@ -42,8 +44,8 @@ All protected endpoints use `Authorization: Bearer <accessToken>`. Public author
 
 | Method | Path | Access | Purpose |
 | --- | --- | --- | --- |
-| POST | `/api/auth/otp/request` | Public | `{ "email": "person@example.com" }` |
-| POST | `/api/auth/otp/verify` | Public | `{ "email": "person@example.com", "code": "123456", "displayName": "Sam" }`; returns token and public profile |
+| POST | `/api/auth/otp/request` | Public | Email: `{ "channel": "email", "email": "person@example.com" }`; SMS: `{ "channel": "sms", "phoneNumber": "+14155552671", "email": "fallback@example.com" }` |
+| POST | `/api/auth/otp/verify` | Public | Same identity/channel plus `{ "code": "123456", "displayName": "Sam" }`; returns token and public profile |
 | GET | `/api/auth/me` | Signed in | View the current account profile and private email address |
 | PATCH | `/api/auth/me` | Signed in | Update the public display name with `{ "displayName": "Sam" }` |
 | GET | `/api/posts` | Public | Filter by `type`, `status`, or `latitude`, `longitude`, `radiusKm` together; optional `limit` and `skip` |

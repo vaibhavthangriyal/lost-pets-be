@@ -7,6 +7,11 @@ import { User, UserSchema }        from './entities/user.entity';
 import { AuthGuard }               from './guards/auth.guard';
 import { AuthRepository }          from './repositories/auth.repository';
 import { AuthService }             from './services/auth.service';
+import { EMAIL_SERVICE }           from './services/email.service';
+import { OtpEmailService }         from './services/otp-email.service';
+import { SmtpEmailService }        from './services/smtp-email.service';
+import { EMAIL_OTP_SERVICE, SMS_OTP_SERVICE } from './services/otp-delivery';
+import { TwilioSmsService }        from './services/twilio-sms.service';
 
 @Module({
   imports: 
@@ -21,7 +26,14 @@ import { AuthService }             from './services/auth.service';
         }
       })],
   controllers: [AuthController],
-  providers  : [AuthService, AuthRepository, AuthGuard],
+  providers  : [
+    AuthService,
+    AuthRepository,
+    AuthGuard,
+    { provide: EMAIL_SERVICE, useFactory: () => process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD && process.env.SMTP_FROM ? new SmtpEmailService() : null },
+    { provide: EMAIL_OTP_SERVICE, useFactory: (email: SmtpEmailService | null) => email ? new OtpEmailService(email) : null, inject: [EMAIL_SERVICE] },
+    { provide: SMS_OTP_SERVICE, useFactory: () => process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER ? new TwilioSmsService() : null },
+  ],
   exports    : [AuthGuard, JwtModule],
 })
 export class AuthModule { }
