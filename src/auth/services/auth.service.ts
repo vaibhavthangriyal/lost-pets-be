@@ -57,9 +57,6 @@ export class AuthService {
         throw new ServiceUnavailableException('OTP delivery is not available');
       }
     }
-    if (process.env.NODE_ENV !== 'production' && process.env.OTP_DELIVERY === 'console') {
-      this.logger.info('Development OTP generated for console delivery', context, { channel, destination: this.maskIdentifier(identifier), otp: code });
-    }
     try {
       const challengeIdentifier = deliveryIdentifier();
       await this.repository.saveChallenge(challengeIdentifier, channel, this.digest(challengeIdentifier, code), new Date(Date.now() + 5 * 60000));
@@ -101,7 +98,10 @@ export class AuthService {
   private async deliver(channel: OtpChannel, destination: string, code: string, context: LogContext) {
     const service = channel === 'sms' ? this.smsDelivery : this.emailDelivery;
     if (!service) {
-      if (channel === 'email' && process.env.NODE_ENV !== 'production' && process.env.OTP_DELIVERY === 'console') return;
+      if (process.env.NODE_ENV !== 'production' && process.env.OTP_DELIVERY === 'console') {
+        this.logger.info('Development OTP generated for console delivery', context, { channel, destination: this.maskIdentifier(destination), otp: code });
+        return;
+      }
       throw new ServiceUnavailableException(`${channel} OTP delivery is not configured`);
     }
     await service.sendOtp(destination, code, context);
