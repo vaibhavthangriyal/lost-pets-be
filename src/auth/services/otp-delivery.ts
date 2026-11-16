@@ -1,8 +1,10 @@
+import { LogContext } from '../../logging/logging.service';
+
 export type OtpChannel = 'email' | 'sms';
 
 export interface OtpDeliveryService {
   readonly channel: OtpChannel;
-  sendOtp(destination: string, code: string): Promise<void>;
+  sendOtp(destination: string, code: string, context: LogContext): Promise<void>;
 }
 
 export const EMAIL_OTP_SERVICE = Symbol('EMAIL_OTP_SERVICE');

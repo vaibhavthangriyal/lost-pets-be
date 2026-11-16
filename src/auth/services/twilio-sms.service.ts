@@ -1,26 +1,38 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { OtpDeliveryService } from './otp-delivery';
+import { Twilio } from 'twilio';
+import { OtpDeliveryService }                      from './otp-delivery';
+import { LogContext, LoggingService }              from '../../logging/logging.service';
 
 @Injectable()
 export class TwilioSmsService implements OtpDeliveryService {
   readonly channel = 'sms' as const;
+  private readonly client    : Twilio;
+  private readonly fromNumber: string;
 
-  async sendOtp(destination: string, code: string) {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const fromNumber = process.env.TWILIO_FROM_NUMBER;
+  constructor(private readonly logger: LoggingService) {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
+    const authToken  = process.env.TWILIO_AUTH_TOKEN?.trim();
+    const fromNumber = process.env.TWILIO_FROM_NUMBER?.trim();
     if (!accountSid || !authToken || !fromNumber) throw new ServiceUnavailableException('Twilio SMS delivery is not configured');
+    this.client     = new Twilio(accountSid, authToken);
+    this.fromNumber = fromNumber;
+  }
 
-    const body = new URLSearchParams({
-      To: destination,
-      From: fromNumber,
-      Body: `Your Pawprint verification code is ${code}. It expires in 5 minutes.`,
-    });
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(accountSid)}/Messages.json`, {
-      method: 'POST',
-      headers: { Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' },
-      body,
-    });
-    if (!response.ok) throw new Error(`Twilio SMS request failed with HTTP ${response.status}`);
+  async sendOtp(destination: string, code: string, context: LogContext) {
+    this.logger.info('Sending OTP through Twilio', context, { destination: this.maskPhone(destination), fromNumber: this.maskPhone(this.fromNumber) });
+    try {
+      const message = await this.client.messages.create({
+        to  : destination,
+        from: this.fromNumber,
+        body: `Your Pawprint verification code is ${code}. It expires in 5 minutes.`,
+      });
+      this.logger.info('Twilio accepted OTP SMS', context, { messageSid: message.sid, providerStatus: message.status });
+    } catch (error) {
+      throw new Error(`Twilio SMS request failed: ${error instanceof Error ? error.message : 'unknown provider error'}`);
+    }
+  }
+
+  private maskPhone(value: string) {
+    return `${value.slice(0, 3)}***${value.slice(-2)}`;
   }
 }

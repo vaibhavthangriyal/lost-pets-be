@@ -12,6 +12,7 @@ import { OtpEmailService }         from './services/otp-email.service';
 import { SmtpEmailService }        from './services/smtp-email.service';
 import { EMAIL_OTP_SERVICE, SMS_OTP_SERVICE } from './services/otp-delivery';
 import { TwilioSmsService }        from './services/twilio-sms.service';
+import { LoggingService }           from '../logging/logging.service';
 
 @Module({
   imports: 
@@ -32,7 +33,7 @@ import { TwilioSmsService }        from './services/twilio-sms.service';
     AuthGuard,
     { provide: EMAIL_SERVICE, useFactory: () => process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD && process.env.SMTP_FROM ? new SmtpEmailService() : null },
     { provide: EMAIL_OTP_SERVICE, useFactory: (email: SmtpEmailService | null) => email ? new OtpEmailService(email) : null, inject: [EMAIL_SERVICE] },
-    { provide: SMS_OTP_SERVICE, useFactory: () => process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER ? new TwilioSmsService() : null },
+    { provide: SMS_OTP_SERVICE, useFactory: (logger: LoggingService) => process.env.TWILIO_ACCOUNT_SID?.trim() && process.env.TWILIO_AUTH_TOKEN?.trim() && process.env.TWILIO_FROM_NUMBER?.trim() ? new TwilioSmsService(logger) : null, inject: [LoggingService] },
   ],
   exports    : [AuthGuard, JwtModule],
 })

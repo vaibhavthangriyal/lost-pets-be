@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD } from '@nestjs/core';
@@ -11,14 +11,20 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PosterModule } from './poster/poster.module';
 import { QrModule } from './qr/qr.module';
 import { ShortUrlModule } from './short-url/short-url.module';
+import { LoggingModule } from './logging/logging.module';
+import { RequestContextMiddleware } from './logging/request-context.middleware';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRootAsync({ useFactory: () => ({ uri: process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/lost-pets' }) }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
-    AuthModule, PetsModule, FilesModule, MetaModule, NotificationsModule, PosterModule, ShortUrlModule, QrModule,
+    LoggingModule, AuthModule, PetsModule, FilesModule, MetaModule, NotificationsModule, PosterModule, ShortUrlModule, QrModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+}

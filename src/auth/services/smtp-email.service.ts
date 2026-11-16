@@ -7,13 +7,13 @@ type SmtpSocket = Socket | TLSSocket;
 
 @Injectable()
 export class SmtpEmailService implements EmailService {
-  private readonly host = process.env.SMTP_HOST!;
-  private readonly port = Number(process.env.SMTP_PORT || 465);
-  private readonly secure = (process.env.SMTP_SECURE || (this.port === 465 ? 'true' : 'false')) === 'true';
+  private readonly host     = process.env.SMTP_HOST!;
+  private readonly port     = Number(process.env.SMTP_PORT || 465);
+  private readonly secure   = (process.env.SMTP_SECURE || (this.port === 465 ? 'true' : 'false'))   === 'true';
   private readonly startTls = (process.env.SMTP_STARTTLS || (this.port === 587 ? 'true' : 'false')) === 'true';
   private readonly username = process.env.SMTP_USER!;
   private readonly password = process.env.SMTP_PASSWORD!;
-  private readonly from = process.env.SMTP_FROM!;
+  private readonly from     = process.env.SMTP_FROM!;
 
   async send(message: EmailMessage) {
     let socket: SmtpSocket | undefined;
